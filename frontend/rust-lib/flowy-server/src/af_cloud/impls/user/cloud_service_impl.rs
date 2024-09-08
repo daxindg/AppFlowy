@@ -22,8 +22,8 @@ use tracing::instrument;
 use flowy_error::{ErrorCode, FlowyError, FlowyResult};
 use flowy_user_pub::cloud::{UserCloudService, UserCollabParams, UserUpdate, UserUpdateReceiver};
 use flowy_user_pub::entities::{
-  AFCloudOAuthParams, AuthResponse, Role, UpdateUserProfileParams, UserCredentials, UserProfile,
-  UserWorkspace, WorkspaceInvitation, WorkspaceInvitationStatus, WorkspaceMember,
+  AFCloudOAuthParams, AuthResponse, Role, SignInParams, UpdateUserProfileParams, UserCredentials,
+  UserProfile, UserWorkspace, WorkspaceInvitation, WorkspaceInvitationStatus, WorkspaceMember,
 };
 use lib_infra::async_trait::async_trait;
 use lib_infra::box_any::BoxAny;
@@ -71,12 +71,16 @@ where
     Ok(resp)
   }
 
-  // Zack: Not sure if this is needed anymore since sign_up handles both cases
+  // sign in with password
   async fn sign_in(&self, params: BoxAny) -> Result<AuthResponse, FlowyError> {
     let try_get_client = self.server.try_get_client();
+
     let client = try_get_client?;
-    let params = oauth_params_from_box_any(params)?;
-    let resp = user_sign_in_with_url(client, params).await?;
+
+    let params: SignInParams = params.unbox_or_error()?;
+
+    let resp = user_sign_in_with_password(client, &params.email, &params.password).await?;
+
     Ok(resp)
   }
 
@@ -621,6 +625,35 @@ pub async fn user_sign_up_request(
   params: AFCloudOAuthParams,
 ) -> Result<AuthResponse, FlowyError> {
   user_sign_in_with_url(client, params).await
+}
+
+pub async fn user_sign_in_with_password(
+  client: Arc<AFCloudClient>,
+  email: &str,
+  password: &str,
+) -> Result<AuthResponse, FlowyError> {
+  let is_new_user = client.sign_in_password(email, password).await?;
+
+  let workspace_profile = client.get_user_workspace_info().await?;
+  let user_profile = workspace_profile.user_profile;
+
+  let latest_workspace = to_user_workspace(workspace_profile.visiting_workspace);
+  let user_workspaces = to_user_workspaces(workspace_profile.workspaces)?;
+  let encryption_type = encryption_type_from_profile(&user_profile);
+
+  Ok(AuthResponse {
+    user_id: user_profile.uid,
+    user_uuid: user_profile.uuid,
+    name: user_profile.name.unwrap_or_default(),
+    latest_workspace,
+    user_workspaces,
+    email: user_profile.email,
+    token: Some(client.get_token()?),
+    encryption_type,
+    is_new_user,
+    updated_at: user_profile.updated_at,
+    metadata: user_profile.metadata,
+  })
 }
 
 pub async fn user_sign_in_with_url(

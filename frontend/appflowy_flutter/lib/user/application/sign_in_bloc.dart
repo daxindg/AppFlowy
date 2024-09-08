@@ -30,7 +30,7 @@ class SignInBloc extends Bloc<SignInEvent, SignInState> {
     on<SignInEvent>(
       (event, emit) async {
         await event.when(
-          signedInWithUserEmailAndPassword: () async => _onSignIn(emit),
+          signedInWithUserEmailAndPassword: (email, password) async => _onSignIn(emit, email, password),
           signedInWithOAuth: (platform) async =>
               _onSignInWithOAuth(emit, platform),
           signedInAsGuest: () async => _onSignInAsGuest(emit),
@@ -119,10 +119,10 @@ class SignInBloc extends Bloc<SignInEvent, SignInState> {
     }
   }
 
-  Future<void> _onSignIn(Emitter<SignInState> emit) async {
+  Future<void> _onSignIn(Emitter<SignInState> emit, String email, String password) async {
     final result = await authService.signInWithEmailPassword(
-      email: state.email ?? '',
-      password: state.password ?? '',
+      email: email,
+      password: password,
     );
     emit(
       result.fold(
@@ -243,7 +243,7 @@ class SignInBloc extends Bloc<SignInEvent, SignInState> {
 
 @freezed
 class SignInEvent with _$SignInEvent {
-  const factory SignInEvent.signedInWithUserEmailAndPassword() =
+  const factory SignInEvent.signedInWithUserEmailAndPassword(String email, String password) =
       SignedInWithUserEmailAndPassword;
   const factory SignInEvent.signedInWithOAuth(String platform) =
       SignedInWithOAuth;

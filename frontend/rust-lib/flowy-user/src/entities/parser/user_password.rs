@@ -23,9 +23,9 @@ impl UserPassword {
       return Err(ErrorCode::PasswordContainsForbidCharacters);
     }
 
-    if !validate_password(&s) {
-      return Err(ErrorCode::PasswordFormatInvalid);
-    }
+    // if !validate_password(&s) {
+    //   return Err(ErrorCode::PasswordFormatInvalid);
+    // }
 
     Ok(Self(s))
   }

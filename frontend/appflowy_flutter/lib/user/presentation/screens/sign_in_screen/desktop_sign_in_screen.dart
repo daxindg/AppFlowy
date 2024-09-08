@@ -76,7 +76,7 @@ class DesktopSignInScreen extends StatelessWidget {
 
   PreferredSize _buildAppBar() {
     return PreferredSize(
-      preferredSize: Size.fromHeight(PlatformExtension.isWindows ? 40 : 60),
+      preferredSize: Size.fromHeight(PlatformExtension.isWindows ? 100 : 60),
       child: PlatformExtension.isWindows
           ? const WindowTitleBar()
           : const MoveWindowDetector(),

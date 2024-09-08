@@ -20,13 +20,19 @@ class SignInWithMagicLinkButtons extends StatefulWidget {
 
 class _SignInWithMagicLinkButtonsState
     extends State<SignInWithMagicLinkButtons> {
-  final controller = TextEditingController();
-  final FocusNode _focusNode = FocusNode();
+  final emailController = TextEditingController();
+  final passwordController = TextEditingController();
+
+  final FocusNode _efocusNode = FocusNode();
+  final FocusNode _pfocusNode = FocusNode();
 
   @override
   void dispose() {
-    controller.dispose();
-    _focusNode.dispose();
+    emailController.dispose();
+    passwordController.dispose();
+    _efocusNode.dispose();
+    _pfocusNode.dispose();
+
     super.dispose();
   }
 
@@ -36,31 +42,62 @@ class _SignInWithMagicLinkButtonsState
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         SizedBox(
-          height: PlatformExtension.isMobile ? 38.0 : 48.0,
-          child: FlowyTextField(
-            autoFocus: false,
-            focusNode: _focusNode,
-            controller: controller,
-            borderRadius: BorderRadius.circular(4.0),
-            hintText: LocaleKeys.signIn_pleaseInputYourEmail.tr(),
-            hintStyle: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  fontSize: 14.0,
-                  color: Theme.of(context).hintColor,
-                ),
-            textStyle: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  fontSize: 14.0,
-                ),
-            keyboardType: TextInputType.emailAddress,
-            onSubmitted: (_) => _sendMagicLink(context, controller.text),
-            onTapOutside: (_) => _focusNode.unfocus(),
+          height: PlatformExtension.isMobile ? 38.0 : 80.0,
+          child: Column(
+            children: [
+              FlowyTextField(
+                focusNode: _efocusNode,
+                controller: emailController,
+                borderRadius: BorderRadius.circular(4.0),
+                hintText: LocaleKeys.signIn_pleaseInputYourEmail.tr(),
+                hintStyle: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      fontSize: 14.0,
+                      color: Theme.of(context).hintColor,
+                    ),
+                textStyle: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      fontSize: 14.0,
+                    ),
+                keyboardType: TextInputType.emailAddress,
+                onTapOutside: (_) => _efocusNode.unfocus(),
+              ),
+              const VSpace(12),
+              FlowyTextField(
+                autoFocus: false,
+                focusNode: _pfocusNode,
+                controller: passwordController,
+                obscureText: true,
+                borderRadius: BorderRadius.circular(4.0),
+                hintText: "password plz",
+                hintStyle: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      fontSize: 14.0,
+                      color: Theme.of(context).hintColor,
+                    ),
+                textStyle: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      fontSize: 14.0,
+                    ),
+                onTapOutside: (_) => _pfocusNode.unfocus(),
+              ),
+            ],
           ),
         ),
         const VSpace(12),
         _ConfirmButton(
-          onTap: () => _sendMagicLink(context, controller.text),
+          onTap: () => _signinWithPass(context, emailController.text, passwordController.text),
         ),
       ],
     );
+  }
+
+  void _signinWithPass(BuildContext context, String email, String password) {
+    if (!isEmail(email)) {
+      return showToastNotification(
+        context,
+        message: LocaleKeys.signIn_invalidEmail.tr(),
+        type: ToastificationType.error,
+      );
+    }
+
+    context.read<SignInBloc>().add(SignInEvent.signedInWithUserEmailAndPassword(email, password));
   }
 
   void _sendMagicLink(BuildContext context, String email) {
